@@ -79,6 +79,25 @@ class Database:
             return []
     
     @classmethod
+    async def get_all_logs(cls, limit: int = 10):
+        """Get all recent analysis logs"""
+        if cls.db is None:
+            return []
+        
+        try:
+            cursor = cls.db.analysis_logs.find().sort('timestamp', -1).limit(limit)
+            
+            logs = []
+            async for doc in cursor:
+                doc['_id'] = str(doc['_id'])
+                logs.append(doc)
+            
+            return logs
+        except Exception as e:
+            print(f"Error fetching all logs: {e}")
+            return []
+    
+    @classmethod
     async def get_statistics(cls):
         """Get overall statistics"""
         if cls.db is None:
@@ -164,6 +183,11 @@ class InMemoryStorage:
         """Get recent threats from memory"""
         threats = [log for log in cls.analysis_logs if log.get('prediction') == 'Phishing']
         return sorted(threats, key=lambda x: x['timestamp'], reverse=True)[:limit]
+    
+    @classmethod
+    def get_all_logs(cls, limit: int = 10):
+        """Get all logs from memory"""
+        return sorted(cls.analysis_logs, key=lambda x: x['timestamp'], reverse=True)[:limit]
     
     @classmethod
     def get_statistics(cls):

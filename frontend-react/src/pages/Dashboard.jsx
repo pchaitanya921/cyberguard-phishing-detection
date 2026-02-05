@@ -33,6 +33,7 @@ export default function Dashboard() {
     const [isEditing, setIsEditing] = useState(false);
     const [profileName, setProfileName] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [allLogs, setAllLogs] = useState([]);
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
     const handleUpdateProfile = async () => {
@@ -64,8 +65,12 @@ export default function Dashboard() {
             setResult(data);
             const statsData = await api.getStats();
             setStats(statsData);
-            const logsData = await api.getRecentThreats(20);
-            setRecentLogs(logsData.threats || []);
+            const [threatsData, logsData] = await Promise.all([
+                api.getRecentThreats(20),
+                api.getAnalysisLogs(20)
+            ]);
+            setRecentLogs(threatsData.threats || []);
+            setAllLogs(logsData.logs || []);
         } catch (err) {
             setError('Analysis failed. Please try again.');
         } finally {
@@ -87,12 +92,14 @@ export default function Dashboard() {
         // Fetch Dashboard Data
         const fetchData = async () => {
             try {
-                const [statsData, logsData] = await Promise.all([
+                const [statsData, threatsData, logsData] = await Promise.all([
                     api.getStats(),
-                    api.getRecentThreats(20)
+                    api.getRecentThreats(20),
+                    api.getAnalysisLogs(20)
                 ]);
                 setStats(statsData);
-                setRecentLogs(logsData.threats || []);
+                setRecentLogs(threatsData.threats || []);
+                setAllLogs(logsData.logs || []);
             } catch (error) {
                 console.error("Failed to load dashboard data", error);
             } finally {
@@ -594,28 +601,29 @@ export default function Dashboard() {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-white/5">
-                                                    {recentLogs.map((log, i) => (
-                                                        <tr key={i} className="hover:bg-white/5 transition-colors">
-                                                            <td className="p-4 text-slate-400 text-sm">{new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</td>
-                                                            <td className="p-4 text-white font-mono text-sm max-w-xs truncate" title={log.url}>{log.url}</td>
-                                                            <td className="p-4">
-                                                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${log.prediction === 'Phishing' ? 'bg-critical/10 text-critical' : 'bg-success/10 text-success'}`}>
-                                                                    {log.prediction}
-                                                                </span>
-                                                            </td>
-                                                            <td className="p-4 text-slate-300">{(log.confidence * 100).toFixed(1)}%</td>
-                                                            <td className="p-4 text-slate-300">{log.threat_type || 'N/A'}</td>
-                                                            <td className="p-4">
-                                                                <div className="w-full bg-white/10 rounded-full h-1.5 w-24">
-                                                                    <div
-                                                                        className={`h-1.5 rounded-full ${log.risk_score > 70 ? 'bg-critical' : 'bg-success'}`}
-                                                                        style={{ width: `${log.risk_score}%` }}
-                                                                    />
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                    {recentLogs.length === 0 && (
+                                                    {allLogs.length > 0 ? (
+                                                        allLogs.map((log, i) => (
+                                                            <tr key={i} className="hover:bg-white/5 transition-colors">
+                                                                <td className="p-4 text-slate-400 text-sm">{new Date(log.timestamp).toLocaleDateString()} {new Date(log.timestamp).toLocaleTimeString()}</td>
+                                                                <td className="p-4 text-white font-mono text-sm max-w-xs truncate" title={log.url}>{log.url}</td>
+                                                                <td className="p-4">
+                                                                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${log.prediction === 'Phishing' ? 'bg-critical/10 text-critical' : 'bg-success/10 text-success'}`}>
+                                                                        {log.prediction}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="p-4 text-slate-300">{(log.confidence * 100).toFixed(1)}%</td>
+                                                                <td className="p-4 text-slate-300">{log.threat_type || 'N/A'}</td>
+                                                                <td className="p-4">
+                                                                    <div className="w-full bg-white/10 rounded-full h-1.5 w-24">
+                                                                        <div
+                                                                            className={`h-1.5 rounded-full ${log.risk_score > 70 ? 'bg-critical' : 'bg-success'}`}
+                                                                            style={{ width: `${log.risk_score}%` }}
+                                                                        />
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))
+                                                    ) : (
                                                         <tr>
                                                             <td colSpan="6" className="p-8 text-center text-slate-500">No analysis logs found. Scan a URL to populate this table.</td>
                                                         </tr>

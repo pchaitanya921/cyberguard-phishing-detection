@@ -73,6 +73,28 @@ async def get_recent_threats(limit: int = Query(default=10, ge=1, le=100)):
     }
 
 
+@router.get("/analysis-logs")
+async def get_analysis_logs(limit: int = Query(default=20, ge=1, le=100)):
+    """
+    Get all recent analysis logs
+    
+    Args:
+        limit: Maximum number of logs to return (1-100)
+        
+    Returns:
+        List of recent analysis logs
+    """
+    if Database.db is not None:
+        logs = await Database.get_all_logs(limit)
+    else:
+        logs = InMemoryStorage.get_all_logs(limit)
+    
+    return {
+        'count': len(logs),
+        'logs': logs
+    }
+
+
 @router.get("/health")
 async def health_check():
     """

@@ -41,5 +41,17 @@ export const api = {
             console.error('API Error:', error);
             throw error;
         }
+    },
+
+    // Get All Analysis Logs
+    getAnalysisLogs: async (limit = 20) => {
+        try {
+            const response = await fetch(`/api/analysis-logs?limit=${limit}`);
+            if (!response.ok) throw new Error('Failed to fetch analysis logs');
+            return await response.json();
+        } catch (error) {
+            console.error('API Error:', error);
+            throw error;
+        }
     }
 };
