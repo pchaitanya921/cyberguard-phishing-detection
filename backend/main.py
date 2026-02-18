@@ -75,8 +75,14 @@ app.include_router(analyze.router, prefix="/api", tags=["Analysis"])
 app.include_router(stats.router, prefix="/api", tags=["Statistics"])
 
 # Serve static files (frontend)
-frontend_dir = Path(__file__).parent.parent / "frontend"
+frontend_dir = Path(__file__).parent.parent / "frontend-react" / "dist"
 if frontend_dir.exists():
+    # Serve assets from the dist/assets folder
+    assets_dir = frontend_dir / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+    
+    # Also mount the root dist folder for other static files like favicon, etc.
     app.mount("/static", StaticFiles(directory=str(frontend_dir)), name="static")
     
     @app.get("/")
@@ -86,6 +92,17 @@ if frontend_dir.exists():
         if index_path.exists():
             return FileResponse(index_path)
         return {"message": "Dashboard not yet available"}
+
+    # Catch-all route for SPA navigation
+    @app.get("/{full_path:path}")
+    async def catch_all(full_path: str):
+        if full_path.startswith("api") or full_path.startswith("docs") or full_path.startswith("redoc"):
+            return None # Let FastAPI handles these
+        
+        index_path = frontend_dir / "index.html"
+        if index_path.exists():
+            return FileResponse(index_path)
+        return {"message": "Not found"}
 
 
 @app.get("/api")
